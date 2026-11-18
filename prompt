@@ -1,0 +1,503 @@
+# MASTER DEVELOPMENT PROMPT
+# Raw-Data-to-Review-Ready Analytics Copilot
+## Multi-Agent Architecture using Python, LangGraph and LLM
+
+### 1. Project Goal
+
+Build a deterministic, source-grounded, multi-agent AI application using Python and LangGraph.
+
+**Application Name:** Raw-Data-to-Review-Ready Analytics Copilot
+
+**One-line description:**
+
+Transform raw CSV files, SQLite databases and natural-language business questions into validated, review-ready executive analysis, interactive visualizations and downloadable reports within minutes.
+
+### 2. Main Problem Statement
+
+Data scientists and business analysts spend considerable time:
+
+- Writing repetitive exploratory data analysis scripts.
+- Cleaning inconsistent and messy data columns.
+- Identifying missing values, duplicates and date irregularities.
+- Writing SQL queries and Python scripts for business questions.
+- Debugging queries and correcting execution errors.
+- Creating charts and interpreting statistical outliers.
+- Preparing executive summaries and formatting reports for non-technical stakeholders.
+
+Build a self-correcting Analytics Copilot that automates this workflow.
+
+The application must ingest raw business data, understand natural-language questions, generate and execute validated read-only SQL/Python code, automatically recover from execution errors and produce structured, review-ready business analysis.
+
+### 3. Expected Functionalities
+
+Implement the following capabilities:
+
+1. **Data ingestion**
+   - Upload CSV files and SQLite databases.
+   - Automatically inspect schemas, column names and data types.
+   - Identify missing values, duplicates, inconsistent formats and date irregularities.
+   - Generate a data-quality summary.
+
+2. **Natural-language analytics**
+   - Provide a conversational interface for business questions.
+   - Translate user questions into SQL/Python analytical operations.
+   - Execute only validated, read-only operations.
+   - Support follow-up questions using session memory.
+   - Avoid regenerating queries when existing verified results can answer a follow-up.
+
+3. **Self-correcting execution**
+   - Detect SQL/Python execution errors.
+   - Send structured error information to the LLM for correction.
+   - Retry failed operations once.
+   - Validate the corrected result.
+   - If correction fails, return a safe partial result or explain the failure.
+
+4. **Interactive visualizations**
+   - Automatically select appropriate charts:
+     - Bar charts
+     - Line charts
+     - Scatter plots
+   - Include meaningful labels, titles and legends.
+   - Identify statistical outliers and provide explanations.
+   - Avoid misleading visualizations.
+
+5. **Executive reporting**
+   - Generate a structured analytical report.
+   - Include key findings, business insights, assumptions and data-quality limitations.
+   - Provide downloadable Markdown/PDF reports.
+   - Ensure every analytical conclusion is traceable to actual data.
+
+### 4. Architecture: Multi-Agent LangGraph
+
+Use a multi-agent architecture with clearly separated responsibilities.
+
+Each agent should have its own module/folder and independently testable functionality.
+
+#### Agent 1: Orchestrator Agent
+
+Responsibilities:
+- Understand and classify incoming requests.
+- Route requests to the appropriate sub-agent.
+- Manage graph execution and session state.
+- Decide whether to reuse existing results or initiate new analysis.
+- Manage review gates and conditional workflows.
+
+The orchestrator controls routing, not analytical execution.
+
+#### Agent 2: Discovery Agent
+
+Responsibilities:
+- Inspect uploaded datasets and available sources.
+- Discover relevant tables, schemas and columns.
+- Identify candidate datasets for the user's question.
+- Return verified dataset references.
+- Reuse previously discovered information when appropriate.
+
+It must never invent table names or columns.
+
+#### Agent 3: Builder Agent
+
+Responsibilities:
+- Interpret the user's analytical requirement.
+- Generate SQL/Python analytical operations.
+- Build the analysis using verified schemas.
+- Execute data-quality checks.
+- Generate statistical summaries and charts.
+- Produce grounded analytical findings.
+
+The builder must work only with verified source information.
+
+#### Agent 4: Reporting/Output Agent
+
+Responsibilities:
+- Convert analytical results into an executive-ready report.
+- Generate structured JSON output.
+- Prepare interactive visualizations.
+- Export reports in Markdown/PDF.
+- Include assumptions, limitations and supporting evidence.
+
+### 5. Non-Negotiable Engineering Principles
+
+**LLM responsibilities:**
+- Interpret user requests.
+- Choose between available options.
+- Generate analytical artifacts.
+- Explain verified findings.
+- Correct errors based on structured feedback.
+
+**Python responsibilities:**
+- Control workflow execution.
+- Perform routing and validation.
+- Execute SQL/Python operations.
+- Manage retries and status.
+- Enforce security restrictions.
+- Control output formatting.
+
+Important rules:
+
+- Every NEVER-do rule must be enforced in Python code, not merely in prompts.
+- Never trust LLM-generated table names, column names or execution instructions without validation.
+- Never execute unrestricted SQL or arbitrary Python.
+- Only allow read-only database operations.
+- Do not fabricate results, statistics or business insights.
+- Distinguish between successful results, partial results, skeleton results and errors.
+- A failed source operation must return an explicit error, not an empty successful result.
+- Validate all generated artifacts against actual source data.
+
+### 6. Builder Agent Pipeline
+
+Implement the following LangGraph nodes.
+
+| Node | Type | Responsibility |
+|---|---|---|
+| ingest | Code | Receive uploaded files and session information |
+| classify_intent | LLM | Identify the analytical intent or follow-up |
+| parse_request | LLM | Convert the question into a structured analytical specification |
+| discover_data | Adapter + Code | Identify relevant datasets and candidate tables |
+| get_schema | Adapter + Code | Retrieve and verify actual schemas |
+| select_source | LLM | Select the authoritative dataset based on descriptions and relevance |
+| validate_request | Code | Validate requested columns, tables and operations |
+| generate_analysis | LLM | Generate SQL/Python analytical operations |
+| execute_analysis | Code | Execute validated read-only operations |
+| validate_results | Code | Validate results and detect execution or data-quality issues |
+| retry_analysis | LLM + Code | Correct failed operations and retry once |
+| generate_insights | LLM | Explain verified findings and statistical observations |
+| generate_charts | Code | Create appropriate visualizations |
+| generate_report | LLM + Code | Produce the final structured report |
+| format_output | Code | Prepare UI response and downloadable artifacts |
+| save_memory | Code | Persist successful session information |
+
+Conditional graph edges must depend on application state, not LLM-generated routing instructions.
+
+Examples:
+- After parsing: discovery or clarification.
+- After schema retrieval: validation or source selection.
+- After execution: success, retry or safe failure.
+- After validation: insights and reporting or partial output.
+- Follow-up intent: reuse cached results where possible.
+
+### 7. Data Source Adapters
+
+Create a dedicated adapter layer.
+
+Implement typed asynchronous functions for:
+
+- `inspect_file()`
+- `search_dataset()`
+- `get_schema()`
+- `execute_readonly_query()`
+- `get_data_quality()`
+
+Support:
+- CSV files.
+- SQLite databases.
+
+All database and file access must go through adapters.
+
+LangGraph nodes must never directly manage HTTP connections, SQL drivers or low-level file operations.
+
+Keep adapters mockable for offline testing.
+
+### 8. Session Memory
+
+Implement a stateless LangGraph execution model with persistent session state.
+
+Use a `SessionStore` interface with:
+
+- `load(session_id)`
+- `save(session_id, state)`
+- `clear(session_id)`
+
+Use SQLite as the default implementation.
+
+Allow PostgreSQL or Redis as alternative implementations.
+
+Persist:
+- Previous user questions.
+- Verified schemas.
+- Selected datasets.
+- Previous analytical results.
+- Generated artifacts.
+- Follow-up context.
+
+Do not save memory on clarification or error-only turns.
+
+Follow-up questions should reuse cached verified results wherever possible and avoid unnecessary source calls.
+
+### 9. Output Contract
+
+Every response must follow one structured JSON contract containing:
+
+- `status`
+- `is_new_feature`
+- `changed`
+- `answer`
+- `artifact`
+- `artifact_fields`
+- `source_tables`
+- `alternatives_considered`
+- `assumptions`
+- `grounding_evidence`
+- `grounding_gaps`
+- `clarify`
+
+Supported status values:
+
+- `grounded`
+- `partial`
+- `skeleton`
+- `error`
+
+Rules:
+- Grounded: Actual validated analysis is available.
+- Partial: Some requested analysis is available, but limitations remain.
+- Skeleton: A template or structure is available without verified analytical results.
+- Error: The operation failed.
+
+Never represent an empty failed result as a successful grounded result.
+
+The final assistant message must be generated from this structured output.
+
+### 10. Async and LLM Provider Management
+
+Use asynchronous execution wherever possible.
+
+- Use `asyncio.gather()` for independent operations.
+- Wrap blocking SDK, database and file operations appropriately.
+- Add timeouts to external calls.
+- Log per-node execution time.
+- Implement one controlled retry for transient adapter failures.
+
+Create one central LLM abstraction:
+
+- `llm_call()`
+- `llm_json()`
+
+Allow model/provider switching through environment variables.
+
+Do not hardcode provider-specific logic throughout the application.
+
+Handle malformed JSON gracefully.
+
+### 11. Configuration and Security
+
+All configurable values must come from environment variables.
+
+Include:
+- LLM provider and model.
+- API endpoint and API key.
+- Timeouts.
+- Retry limits.
+- File-size limits.
+- Query execution limits.
+- Maximum rows returned.
+- Session-store configuration.
+
+Create `.env.example`.
+
+Never commit API keys or secrets.
+
+Security requirements:
+- SQL SELECT-only execution.
+- Block destructive SQL statements.
+- Restrict Python execution to approved analytical operations.
+- Validate uploaded file types and sizes.
+- Prevent unrestricted filesystem access.
+- Apply query timeouts and resource limits.
+- Never expose credentials in logs.
+
+### 12. User Interface
+
+Create a clean, professional, business-oriented web application.
+
+The interface should contain:
+
+1. Dataset upload area.
+2. Dataset/schema inspection panel.
+3. Data-quality summary.
+4. Natural-language question input.
+5. Analytical execution status.
+6. Generated SQL/Python preview.
+7. Interactive charts.
+8. Key findings and insights.
+9. Executive report.
+10. Markdown/PDF export.
+
+Keep the frontend independent of the LangGraph backend so that the UI can be replaced without changing the core agent logic.
+
+### 13. Suggested Project Structure
+
+Create a modular project structure similar to:
+
+```text
+analytics-copilot/
+│
+├── app/
+│   ├── orchestrator/
+│   │   ├── graph.py
+│   │   ├── nodes.py
+│   │   └── routing.py
+│   │
+│   ├── agents/
+│   │   ├── discovery/
+│   │   ├── builder/
+│   │   └── reporting/
+│   │
+│   ├── adapters/
+│   │   ├── csv_adapter.py
+│   │   ├── sqlite_adapter.py
+│   │   └── base.py
+│   │
+│   ├── state/
+│   │   ├── schema.py
+│   │   └── session_store.py
+│   │
+│   ├── services/
+│   │   ├── llm_service.py
+│   │   ├── validation.py
+│   │   ├── analytics.py
+│   │   ├── chart_service.py
+│   │   └── report_service.py
+│   │
+│   ├── api/
+│   │   └── routes.py
+│   │
+│   └── main.py
+│
+├── frontend/
+├── tests/
+│   ├── test_agents.py
+│   ├── test_graph.py
+│   ├── test_adapters.py
+│   ├── test_security.py
+│   └── test_end_to_end.py
+│
+├── sample_data/
+├── reports/
+├── .env.example
+├── requirements.txt
+├── Dockerfile
+├── README.md
+└── pyproject.toml
+```
+
+You may refine this structure when justified, but maintain clear separation of responsibilities.
+
+### 14. Testing and Quality Assurance
+
+Create an offline test harness.
+
+Use mocked adapters and mocked LLM responses initially.
+
+Test these scenarios:
+
+1. Successful CSV ingestion and schema discovery.
+2. Successful SQLite ingestion.
+3. Missing values and duplicate detection.
+4. Natural-language question converted into a valid query.
+5. Correct execution of read-only SQL.
+6. Invalid column detection.
+7. SQL/Python execution failure.
+8. Automatic correction and successful retry.
+9. Failed retry resulting in partial/error output.
+10. Hallucinated column or table rejection.
+11. Outlier identification.
+12. Chart generation.
+13. Executive report generation.
+14. Follow-up question using session memory.
+15. Follow-up question requiring new data discovery.
+16. Missing or invalid user input.
+
+Include assertions for grounding, security and output status.
+
+### 15. Expected Deliverables
+
+Provide:
+
+1. Complete modular Python application.
+2. Compiled LangGraph workflow.
+3. Agent nodes and prompts.
+4. Typed state schema.
+5. Source adapter modules.
+6. Session memory implementation.
+7. LLM abstraction.
+8. User interface.
+9. Interactive chart generation.
+10. Markdown/PDF reporting.
+11. Offline automated test harness.
+12. Sample business dataset.
+13. `.env.example`.
+14. Dockerfile.
+15. README with architecture diagram, pipeline diagram, setup instructions and deployment steps.
+
+Export the compiled graph as a `graph` variable and provide a compatible `langgraph.json` configuration if applicable.
+
+### 16. Development Process — Follow Sequentially
+
+Do not attempt to build the entire application in one step.
+
+**Phase 1: Architecture approval**
+
+First show me:
+
+- Proposed agent architecture.
+- LangGraph node table.
+- Conditional edges.
+- Typed state schema.
+- Adapter function signatures.
+- Output JSON schema.
+- Project folder structure.
+
+Wait for my approval before implementation.
+
+**Phase 2: Skeleton implementation**
+
+Build the complete graph using mocked adapters and mocked LLM calls.
+
+Validate the architecture and node transitions.
+
+**Phase 3: Offline testing**
+
+Implement the complete offline test harness.
+
+Run all tests and fix failures before integrating real services.
+
+**Phase 4: Real integrations**
+
+Implement actual CSV/SQLite adapters and LLM integration.
+
+Validate against real sample datasets.
+
+**Phase 5: UI and reporting**
+
+Complete the frontend, interactive charts and downloadable executive reports.
+
+**Phase 6: Final validation**
+
+Run the complete workflow end to end.
+
+Provide a summary of:
+- What was implemented.
+- Tests executed and results.
+- Known limitations.
+- What was NOT verified against live services.
+- Deployment instructions.
+
+### 17. Final Engineering Expectations
+
+Prioritize:
+
+- Deterministic execution.
+- Modular and reusable components.
+- Strong typing and state management.
+- Grounded analytical results.
+- Explainability.
+- Safe SQL/Python execution.
+- Automatic error recovery.
+- Efficient LLM usage.
+- Session-based follow-up conversations.
+- Production-oriented logging and configuration.
+
+Avoid unnecessary agent complexity. Use an LLM only where reasoning or language generation is required. Use Python for deterministic operations.
+
+**IMPORTANT: Start with Phase 1 only. Present the architecture, node table, adapter signatures and state schema. Wait for my approval before writing implementation code.**
