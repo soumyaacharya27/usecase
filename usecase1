@@ -1,0 +1,21 @@
+A. Raw-Data-to-Review-Ready Analytics Copilot 
+• Summary: Accelerate business decision-making by turning raw CSV/SQLite exports 
+and ad-hoc questions into review-ready executive analysis and interactive charts in 
+minutes. 
+• Problem Description: Data scientists and analysts spend hours writing boilerplate 
+exploratory scripts, cleaning messy columns, and formatting reports for non-technical 
+stakeholders. Participants must build a self-correcting analytics copilot that ingests 
+raw business data, runs natural-language queries via validated SQL/Python, and 
+outputs a structured, review-ready analysis report with visuals. 
+• Expected Functionalities: 
+• CSV/SQLite uploader with automated schema inspection and data-quality 
+health checks. 
+• Natural-language query interface that generates and executes read-only 
+SQL/Python code with automatic error self-correction. 
+• Auto-rendered visual charts (bar, line, scatter) paired with statistical outlier 
+callouts. 
+• One-click exportable review-ready executive summary in Markdown/PDF 
+format. 
+• Suggested Data Requirements: A messy, multi-column raw CSV or SQLite database 
+(~1,000 rows covering SaaS subscriptions, e-commerce orders, or customer churn with 
+missing values and date irregularities). 
